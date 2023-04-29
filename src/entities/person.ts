@@ -18,7 +18,10 @@ export interface IPersonOptions  {
   mass?:number,
   showForce?:boolean,
   start?:Vector3,
-  color?:Color3
+  color?:Color3,
+  restitution?:number, 
+  friction?:number
+  createMat?:boolean
 }
 
 
@@ -31,20 +34,23 @@ export class Person implements IEntity{
   forcePointer:Pointer
   showForcePointer:boolean = false
 
+
   public constructor(readonly name:string, readonly owner:IGame, personOptions:IPersonOptions){
     //defaults
-    const options = {
+    const options:IPersonOptions = {
       height:4,
       radiusTop:0.8,
       radiusBottom:1.2,
-      offset:-1.6,
+      offset:-2,
       capsuleBottom:-1,
       capsuleTop:0.4,
-      canterOfGravity:-2,
+      canterOfGravity:-1.4,
       mass:10, 
       showForce:false,
-      start:new Vector3(0,0,0),
-      color:Color3.Gray()
+      createMat:true,
+      color:Color3.Gray(),
+      restitution:0.7,
+      friction:0.3
     }
 
     Object.assign(options, personOptions)
@@ -53,48 +59,58 @@ export class Person implements IEntity{
     const forcePoint = new TransformNode(`${name}_transform`, scene)
     const torso = CreateCapsule(`${name}_body`, {  height:options.height, radius:options.radiusTop, radiusTop:options.radiusTop, radiusBottom:options.radiusBottom }, scene)   
 
-    const mat = new StandardMaterial(`${name}_mat`, scene)
-    mat.diffuseColor = options.color
-    torso.material = mat
 
-    forcePoint.setAbsolutePosition(new Vector3(0,options.offset,0))
+    if (options.createMat){
+      const mat = new StandardMaterial(`${name}_mat`, scene)
+      mat.diffuseColor = options.color!
+      torso.material = mat
+    }
+
+    forcePoint.setAbsolutePosition(new Vector3(0,options.offset,0.8))
     forcePoint.parent = torso
     torso.setAbsolutePosition(new Vector3(0,5,0))
-    const shape = new PhysicsShapeCapsule(new Vector3(0,options.capsuleBottom,0), new Vector3(0,options.capsuleTop,0),options.radiusBottom, scene)
+    const shape = new PhysicsShapeCapsule(new Vector3(0,options.capsuleBottom,0), new Vector3(0,options.capsuleTop,0),options.radiusBottom!, scene)
+
+    shape.material =  {friction: options.friction, restitution: options.restitution};
     const body = new PhysicsBody(torso,PhysicsMotionType.DYNAMIC, false, scene)
     body.shape = shape
     body.setMassProperties({ mass:options.mass, centerOfMass:new Vector3(0,options.canterOfGravity,0) })
     this.rootMesh = torso
-    this.body = body
-    this.forcePointer = new Pointer(`${name}_pointer`, scene, Color3.Blue(),true)
-    this.forcePoint = forcePoint
-    this.showForcePointer = options.showForce
-    this.forcePointer.setVisible(options.showForce)
     
-    this.body.disablePreStep = false;
-    this.body.transformNode.setAbsolutePosition(options.start)
-    owner.scene.onAfterRenderObservable.addOnce(() => {
-      // Turn disablePreStep on again for maximum performance
-      this.body.disablePreStep = true;
-    })
+    
+    body.setAngularDamping(2)
+    this.body = body
+    this.forcePointer = new Pointer(`${name}_pointer`, scene, Color3.Blue(),false)
+    this.forcePoint = forcePoint
+    this.showForcePointer = options.showForce!
+    this.forcePointer.setVisible(options.showForce!)
+    
+    
+    if (options.start){
+      this.setPosition(options.start)
+
+    }
   }
  
 
+  setPosition(pos:Vector3){
+    this.body.disablePreStep = false;
+    this.body.transformNode.setAbsolutePosition(pos)
+    this.owner.scene.onAfterRenderObservable.addOnce(() => {
+      // Turn disablePreStep on again for maximum performance
+      this.body.disablePreStep = true;
+    })
+
+  }
 
   update(dT: number): void {
-
     this.aliveTime+=dT
-
     const force = new Vector3(30 * Math.sin(this.aliveTime * 0.0005),0,30* Math.cos(this.aliveTime  * 0.0005))
     const point = this.forcePoint.getAbsolutePosition()
-
     this.body.applyForce(force, point)
     if (this.showForcePointer){
-    this.forcePointer.set(point,force)
+      this.forcePointer.set(point,force)
     }
-
-
-
   }
 
 

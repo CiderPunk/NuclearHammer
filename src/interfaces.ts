@@ -1,9 +1,10 @@
-import { Vector2 } from "@babylonjs/core/Maths/math";
+import { Vector2, Vector3 } from "@babylonjs/core/Maths/math";
 import { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import { Scene } from "@babylonjs/core/scene";
 
 export interface IGame{
   scene:Scene
+  makeNuke(point:Vector3, radius:number,  strength:number):void
 }
 
 export interface IEntity{
