@@ -1,3 +1,4 @@
 export const Constants = {
-  thinkTime: 200
+  thinkTime: 400,
+  megaThinkPeriod: 10,
 } as const

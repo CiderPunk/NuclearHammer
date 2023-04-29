@@ -120,11 +120,8 @@ export class Game implements IGame{
       
 
       //spawn kids
-      for (var i = 0; i<30; i++){
-        const ang = Math.PI * 2 *Math.random()
-        const dist = Math.random() * 20
-        this.ents.push(new Kid("kid"+i, this, new Vector3(dist* Math.sin(ang), 5,dist*(Math.cos(ang))), 20000*Math.random()))
-      }
+      this.spawnKids(30)
+
 
       this.ents.push(new Player("player1", this, inputManager))
       this.physicsHelper = new PhysicsHelper(this.scene)
@@ -137,6 +134,15 @@ export class Game implements IGame{
     })
     
   }
+
+  spawnKids(count:number){
+    for (var i = 0; i < count; i++){
+      const ang = Math.PI * 2 *Math.random()
+      const dist = Math.random() * 20
+      this.ents.push(new Kid("kid"+i, this, new Vector3(dist* Math.sin(ang), 5,dist*(Math.cos(ang))),Math.random() * 200000))
+    }
+  }
+
 
   render(){
     if (this.player){

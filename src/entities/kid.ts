@@ -1,35 +1,60 @@
-import { Vector3 } from "@babylonjs/core/Maths/math";
+import { Color3, Vector3 } from "@babylonjs/core/Maths/math";
 import { IGame } from "../interfaces";
 import { Person } from "./person";
 import { Constants } from "../constants";
+import { Context } from "@babylonjs/inspector/components/actionTabs/tabs/propertyGrids/animations/curveEditor/context";
+import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 
 export class Kid extends Person{
   targetVector: Vector3;
   nextThink: number;
+  megaThink: number;
 
-  public constructor(name:string, owner:IGame, startPoint:Vector3, nextThink:number){
+
+  public constructor(name:string, owner:IGame, startPoint:Vector3, aliveTime:number){
     super(name, owner, { start:startPoint})
-    this.nextThink = nextThink
+
+    this.aliveTime = aliveTime
+    this.nextThink = aliveTime + Constants.thinkTime
+    this.megaThink = Math.floor(Constants.megaThinkPeriod * Math.random())
     const initDir = Math.random() * 2 * Math.PI;
     this.targetVector = new Vector3( Math.sin(initDir),0,Math.cos(initDir)  )
+
+
+
   }
 
 
   update(dT: number): void {
     this.aliveTime+=dT
-
     if (this.aliveTime > this.nextThink){
-      while (this.aliveTime > this.nextThink){
-        this.nextThink = this.aliveTime + Constants.thinkTime
-      }
+
+
+      this.nextThink = this.aliveTime + Constants.thinkTime
+      if (this.megaThink-- <=0){
+        this.megaThink = Constants.megaThinkPeriod
       
-      this.body.getLinearVelocityToRef(this.targetVector)
-      this.targetVector.normalize()
+        //const mat = this.rootMesh.material as StandardMaterial
+        //mat.diffuseColor = new Color3(Math.random(), Math.random(), Math.random())
+       
+       /*
+        var angle = Math.tanh(this.targetVector.x / this.targetVector.z ===0 ? 0.00001 : this.targetVector.z)
+        angle += (Math.random() * Math.PI * 1)
+        this.targetVector.set(Math.cos(angle), 0, Math.sin(angle))
+
+        console.log(`${this.name} angle ${angle}`)
+
+*/
+      }
+      else{
+        this.body.getLinearVelocityToRef(this.targetVector)
+        this.targetVector.normalize()
+      }
     }
 
 
-    const force = this.targetVector.scale(20).addInPlace(new Vector3(5 * Math.sin(this.aliveTime * 0.001),0,5 * Math.cos(this.aliveTime  * 0.001)))
-    const point = this.forcePoint.getAbsolutePosition().addInPlace(new Vector3(2 * Math.sin(this.aliveTime * 0.005),0,2 * Math.cos(this.aliveTime  * 0.005)))
+    const force = this.targetVector.scale(20).addInPlace(new Vector3(10 * Math.sin(this.aliveTime * 0.001),0,10 * Math.cos(this.aliveTime  * 0.001)))
+    const point = this.forcePoint.getAbsolutePosition().addInPlace(new Vector3(3 * Math.sin(this.aliveTime * 0.005),0,3 * Math.cos(this.aliveTime  * 0.005)))
     this.body.applyForce(force, point)
     if (this.showForcePointer){
       this.forcePointer.set(point,force)
