@@ -1,3 +1,6 @@
 /node_modules
 /dist/bundle.js
 /dist/*.wasm
+/dist/assets/*.png~
+*.kra~
+*.png~

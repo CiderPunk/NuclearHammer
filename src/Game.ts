@@ -1,7 +1,7 @@
 import { FreeCamera } from "@babylonjs/core/Cameras/freeCamera";
 import { Engine } from "@babylonjs/core/Engines/engine";
 import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
-import { Vector3 } from "@babylonjs/core/Maths/math";
+import { Color4, Vector3 } from "@babylonjs/core/Maths/math";
 import { Scene } from "@babylonjs/core/scene";
 import { IConfigurationProvider, IEntity, IGame } from "./interfaces";
 //import { Pointer } from "./helpers/pointer";
@@ -10,7 +10,7 @@ import { HavokPlugin } from "@babylonjs/core/Physics/v2/Plugins"
 import "@babylonjs/core/Physics/v2/physicsEngineComponent"
 //import "@Babylonjs/core/Particles/webgl2ParticleSystem"
 
-import {BaseParticleSystem, ParticleHelper} from "@babylonjs/core/Particles"
+import {BaseParticleSystem, GPUParticleSystem, ParticleHelper} from "@babylonjs/core/Particles"
 
 import { PhysicsAggregate, PhysicsHelper, PhysicsRadialImpulseFalloff, PhysicsShapeType } from "@babylonjs/core/Physics"
 
@@ -28,7 +28,10 @@ import { Camera } from "@babylonjs/core/Cameras/camera";
 import { TargetCamera } from "@babylonjs/core/Cameras/targetCamera";
 import { Constants } from "./constants";
 import { ConfigurationProvider } from "./ConfigurationProvider";
-
+import { Texture } from "@babylonjs/core/Materials/Textures/texture";
+import { Person } from "./entities/person";
+import {AssetsManager} from "@babylonjs/core/Misc/assetsManager"
+import { AssetContainer, KeepAssets } from "@babylonjs/core/assetContainer";
 
 export class Game implements IGame{
   readonly engine: Engine;
@@ -47,14 +50,36 @@ export class Game implements IGame{
   emitter: AbstractMesh;
   gameCamera: TargetCamera;
   ConfigurationProvider: IConfigurationProvider
+  assContainer: AssetContainer;
+  rootNode: TransformNode;
+
+  public goalEffect(point:Vector3, direction:Vector3){
+    var particleSystem = new GPUParticleSystem("particles", { capacity:1000 }, this.scene);
+    particleSystem.particleTexture = new Texture("assets/flare.png", this.scene);
+    // Colors of all particles
+    particleSystem.color1 = new Color4(0.7, 0.8, 1.0, 1.0);
+    particleSystem.color2 = new Color4(0.2, 0.5, 1.0, 1.0);
+    particleSystem.colorDead = new Color4(0, 0, 0.2, 0.0);
+
+    particleSystem.maxLifeTime = 5;
+    particleSystem.minSize = 0.2;
+    particleSystem.maxSize = 0.8;
+   // particleSystem.emitter = point;
+    // Speed
+    particleSystem.minEmitPower = 1;
+    particleSystem.maxEmitPower = 3;
+    particleSystem.updateSpeed = 0.005;
+    particleSystem.emitter = point
+    particleSystem.createSphereEmitter(3)
+    
+    particleSystem.emitRate = 1000
+    particleSystem.start()
+    setTimeout(()=>{ particleSystem.dispose() }, 500)
+  }    
 
 
-  
   public makeNuke(point:Vector3, radius:number,  strength:number):void{
     this.physicsHelper!.applyRadialExplosionForce(point.add(new Vector3(0,0,0)), radius, strength, PhysicsRadialImpulseFalloff.Linear )
- 
-
-
     ParticleHelper.CreateAsync("explosion", this.scene).then((set) => {
       this.emitter.setAbsolutePosition(point)
       set.systems.forEach(s => {
@@ -66,6 +91,8 @@ export class Game implements IGame{
   }
 
   public constructor(element:string){
+
+    const keepAssets = new KeepAssets()
 
 
     this.ConfigurationProvider  = new ConfigurationProvider()
@@ -81,6 +108,8 @@ export class Game implements IGame{
     //oh god why?!?!?
     this.scene.useRightHandedSystem = true
 
+    this.rootNode= new TransformNode("root", this.scene)
+
     const cam = new TargetCamera("gamecam",  new Vector3().copyFrom(Constants.cameraOffset), this.scene)
     cam.setTarget(new Vector3(0,0,0))
     this.gameCamera = cam
@@ -88,26 +117,18 @@ export class Game implements IGame{
     // This creates and positions a free camera (non-mesh)
     this.freeCamera = new FreeCamera("camera1", new Vector3(0, 20, -30), this.scene);
 
+    keepAssets.cameras.push(this.gameCamera, this.freeCamera)
+
+
     // This targets the camera to scene origin
     this.freeCamera.setTarget(Vector3.Zero());
 
     // This attaches the camera to the canvas
     this.freeCamera.attachControl(canvas, true);
 
-    // This creates a light, aiming 0,1,0 - to the sky (non-mesh)
-    //const light = new HemisphericLight("light1", new Vector3(0, 1, 0), this.scene);
-
-    // Default intensity is 1. Let's dim the light a small amount
-    //light.intensity = 0.7;
-
-    // Create a grid material
-    //this.material = new GridMaterial("grid", this.scene);
-    //this.material.gridRatio = 0.1
-    
-
     //emitter dummy
-    this.emitter = CreateBox("em", {size:0.01}, this.scene)
-
+    this.emitter = CreateBox("emitter", {size:0.01}, this.scene)
+    keepAssets.meshes.push(this.emitter)
     this.emitter.isVisible = false
     
     const inputManager = new InputManager(this)
@@ -121,35 +142,13 @@ export class Game implements IGame{
        this.scene.activeCamera = (this.scene.activeCamera === this.gameCamera ? this.freeCamera : this.gameCamera )
     }
 
-
-
     this.inputManager = inputManager
 
-    //const axes = new AxesViewer(this.scene, 10)
 
+
+    //set up physics
     HavokPhysics().then((havok) => {
       this.scene.enablePhysics(new Vector3(0,-9.81, 0), new HavokPlugin(true, havok));
-      /*
-
- // Our built-in 'ground' shape.
-    this.ground = CreateGround('ground1', { width: 100, height: 100, subdivisions: 1 }, this.scene);
-    this.ground.material = this.material;
-
-
-      const groundAggrergate = new PhysicsAggregate(this.ground, PhysicsShapeType.BOX, { mass:0}, this.scene)
-      //build some walls
-      for (let i = 0; i<4; i++){
-        const wall = CreateBox(`wall_${i}`, { width:100, height:4, depth:1 }, this.scene)
-        const wallAggregate = new PhysicsAggregate(wall, PhysicsShapeType.BOX, { mass:0}, this.scene)
-        wallAggregate.body.disablePreStep = false
-        wallAggregate.body.transformNode.setAbsolutePosition(new Vector3(50 * Math.sin(i * Math.PI * 0.5),2, 50 * Math.cos(i * Math.PI * 0.5)))
-        wallAggregate.body.transformNode.rotate(Vector3.Up(), Math.PI * 0.5 * i )
-        this.scene.onAfterRenderObservable.addOnce(() => {
-          wallAggregate.body.disablePreStep = true
-        })
-      }
-*/
-      //this.ents.push(new TestShape("test", this))
 
       this.physicsHelper = new PhysicsHelper(this.scene)
 
@@ -160,10 +159,23 @@ export class Game implements IGame{
         }
       })
       
-      this.level  = new Level(this, "map1.gltf", this.ConfigurationProvider.config.enableShadows!)
+     
     });
 
-  
+
+    const assMan = new AssetsManager()
+
+    //load some stuff...
+    Person.preload(assMan)
+    assMan.loadAsync()
+
+    this.assContainer = new AssetContainer(this.scene)
+    assMan.onFinish = (tasks)=>{
+      this.assContainer.moveAllFromScene(keepAssets)
+      this.level  = new Level(this, "map1.gltf", this.ConfigurationProvider.config.enableShadows!)
+    };
+
+
   }
 
 

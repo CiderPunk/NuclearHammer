@@ -58,7 +58,7 @@ export class InputManager implements IInputManager {
       return false
     }
     this.downKeys.add(key)
-    console.log(`keydown ${key}`)
+    //console.log(`keydown ${key}`)
     switch(key){
       case "ArrowUp":
       case "w": 

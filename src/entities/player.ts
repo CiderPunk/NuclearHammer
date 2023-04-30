@@ -5,6 +5,9 @@ import { CreateCylinder, TransformNode } from "@babylonjs/core/Meshes";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { BallAndSocketConstraint, HingeConstraint, Physics6DoFConstraint, PhysicsBody, PhysicsConstraint, PhysicsConstraintAxis, PhysicsHelper, PhysicsMotionType, PhysicsShapeCylinder } from "@babylonjs/core/Physics";
 import { GridMaterial } from "@babylonjs/materials/grid/gridMaterial";
+import { CollisionMask } from "../constants";
+import { Nullable } from "@babylonjs/core/types";
+import { Texture } from "@babylonjs/core/Materials/Textures/texture";
 
 
 /*
@@ -32,17 +35,20 @@ export class Player extends Person{
   primed = false
 
   public constructor(name:string, owner:IGame, readonly input:IInputManager){
-    super(name, owner, { radiusTop:1, radiusBottom:1.6, height:5, capsuleBottom:-1.2, color:Color3.Green(), canterOfGravity:-3,offset:-3.1 , showForce:false, mass:60, createMat:true  })
+    super(name, owner, { radiusTop:1, radiusBottom:1.6, height:5, capsuleBottom:-1.2, canterOfGravity:-3,offset:-3.1 , showForce:false, mass:60, createMat:true  })
     
+    this.shape.filterMembershipMask = CollisionMask.Player
+    this.shape.filterCollideMask = CollisionMask.Kid | CollisionMask.Goal
 
-
-
+    this.rootMesh.scaling.set(1.2,1.2,1.2)
+ 
     //const gridMaterial = new GridMaterial("grid", owner.scene);
     //gridMaterial.gridRatio = 0.1
     //this.rootMesh.material = gridMaterial
 
     //responsive controls
     this.body.setLinearDamping(2)
+    
 
     const hammerMat = new StandardMaterial("hammer_mat", owner.scene)
     hammerMat.diffuseColor = new Color3(1,0.8,0.05)
@@ -59,6 +65,7 @@ export class Player extends Person{
     shape.material = { friction:1, restitution:0.1}
     const hammerBody = new PhysicsBody(hammerHead,PhysicsMotionType.DYNAMIC, false, owner.scene)
     hammerBody.shape = shape
+    hammerBody._pluginData.entity = this
     
     hammerBody.setMassProperties({ mass:0.2})
     hammerShaft.setParent(hammerBody.transformNode)
@@ -66,9 +73,9 @@ export class Player extends Person{
     //const hingeConstraint = new HingeConstraint(new Vector3(1.5,0,0), new Vector3(0,0,-3), Vector3.Right(), Vector3.Right(), owner.scene)
 
     const hammerConstraintSwing = new Physics6DoFConstraint(
-      {pivotA: new Vector3(-1.5,0,0), pivotB:new Vector3(0,0,-3), perpAxisA:Vector3.Right(), perpAxisB:Vector3.Right()},
+      {pivotA: new Vector3(1.5,0,0), pivotB:new Vector3(0,0,-3), perpAxisA:Vector3.Right(), perpAxisB:Vector3.Right()},
       [
-        { axis: PhysicsConstraintAxis.ANGULAR_X,minLimit:Math.PI * -0.7 ,maxLimit:Math.PI * 0.9  },
+        { axis: PhysicsConstraintAxis.ANGULAR_X,minLimit:Math.PI * -0.3 ,maxLimit:Math.PI * -1.2     },
         { axis: PhysicsConstraintAxis.ANGULAR_Y, minLimit:0, maxLimit:0 },
         { axis: PhysicsConstraintAxis.ANGULAR_Z, minLimit:0, maxLimit:0 },
         { axis: PhysicsConstraintAxis.LINEAR_X, minLimit:0, maxLimit:0 },
@@ -78,7 +85,7 @@ export class Player extends Person{
       owner.scene)
 
     const hammerConstraintRest = new Physics6DoFConstraint(
-      {pivotA: new Vector3(-1.5,0,0), pivotB:new Vector3(0,0,-3), perpAxisA:Vector3.Right(), perpAxisB:Vector3.Right()},
+      {pivotA: new Vector3(1.5,0,0), pivotB:new Vector3(0,0,-3), perpAxisA:Vector3.Right(), perpAxisB:Vector3.Right()},
       [
         { axis: PhysicsConstraintAxis.ANGULAR_X,minLimit:Math.PI * -0.5 ,maxLimit:Math.PI * -0.5  },
         { axis: PhysicsConstraintAxis.ANGULAR_Y, minLimit:0, maxLimit:0 },
@@ -91,9 +98,9 @@ export class Player extends Person{
 
 
     const hammerConstraintDraw = new Physics6DoFConstraint(
-      {pivotA: new Vector3(-1.5,0,0), pivotB:new Vector3(0,0,-3), perpAxisA:Vector3.Right(), perpAxisB:Vector3.Right()},
+      {pivotA: new Vector3(1.5,0,0), pivotB:new Vector3(0,0,-3), perpAxisA:Vector3.Right(), perpAxisB:Vector3.Right()},
       [
-        { axis: PhysicsConstraintAxis.ANGULAR_X,minLimit:Math.PI * -0.7 ,maxLimit:Math.PI * -0.7  },
+        { axis: PhysicsConstraintAxis.ANGULAR_X,minLimit:Math.PI * -0.3 ,maxLimit:Math.PI * -0.3  },
         { axis: PhysicsConstraintAxis.ANGULAR_Y, minLimit:0, maxLimit:0 },
         { axis: PhysicsConstraintAxis.ANGULAR_Z, minLimit:0, maxLimit:0 },
         { axis: PhysicsConstraintAxis.LINEAR_X, minLimit:0, maxLimit:0 },
@@ -114,22 +121,25 @@ export class Player extends Person{
     this.setHammerState(HammerState.rest)
     hammerBody.setCollisionCallbackEnabled(true)
     hammerBody.getCollisionObservable().add((collisionEvent)=>{
-      if (collisionEvent.collidedAgainst === this.body){
-        console.log(`self collision`)
-      }
-      else{
-        if ( this.primed && this.hammerState === HammerState.swing && collisionEvent.point){
-          //make a big bang
-          console.log(`bang`)
-          this.primed = false
-          this.owner.makeNuke(collisionEvent.point, 15, 2000)
 
+      if (collisionEvent.collider._pluginData.entity && collisionEvent.point !== null){
+        const player = collisionEvent.collider._pluginData.entity as Player
+        if (player){
+          player.hammerHit(collisionEvent.point)
         }
       }
+
     })
     this.hammerBody = hammerBody
+  }
+  hammerHit(point: Vector3){
+    if ( this.primed && this.hammerState === HammerState.swing){
+      //make a big bang
+      //console.log(`bang`)
+      this.primed = false
+      this.owner.makeNuke(point, 15, 2000)
 
-    
+    }
   }
 
 
@@ -137,7 +147,7 @@ export class Player extends Person{
     this.hammerState = state
     this.contraints.forEach((c,i)=>{c.isEnabled = (i===state) })
     if (state == HammerState.swing){      
-      const force = new Vector3(0,-200,0)
+      const force = new Vector3(0,200,0)
       const rotationMat = this.hammerBody.transformNode.getWorldMatrix().getRotationMatrix()
       const transformedForce = Vector4.TransformCoordinates(force, rotationMat).toVector3()
 

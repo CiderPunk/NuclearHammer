@@ -1,12 +1,14 @@
 import { AbstractMesh, CreateCapsule, TransformNode } from "@babylonjs/core/Meshes";
 import { IEntity, IGame } from "../interfaces";
 import { Color3, Vector3 } from "@babylonjs/core/Maths/math";
-import { PhysicsBody, PhysicsMotionType, PhysicsShapeCapsule, PhysicsShapeContainer } from "@babylonjs/core/Physics";
-import { Pointer } from "../helpers/pointer";
-import { Scene } from "@babylonjs/core/scene";
-import { Material } from "@babylonjs/core/Materials/material";
+import { PhysicsBody, PhysicsMotionType, PhysicsShape, PhysicsShapeCapsule, PhysicsShapeContainer } from "@babylonjs/core/Physics";
+
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
-import { PBRMaterial } from "@babylonjs/core/Materials/PBR/pbrMaterial";
+
+import { Texture } from "@babylonjs/core/Materials/Textures/texture";
+import { AssetContainer } from "@babylonjs/core/assetContainer";
+
+import { AssetsManager } from "@babylonjs/core/Misc/assetsManager";
 
 export interface IPersonOptions  { 
   height?:number,
@@ -19,7 +21,7 @@ export interface IPersonOptions  {
   mass?:number,
   showForce?:boolean,
   start?:Vector3,
-  color?:Color3,
+  texture?:string
   restitution?:number, 
   friction?:number
   createMat?:boolean
@@ -33,9 +35,16 @@ export class Person implements IEntity{
   forcePoint:TransformNode
   body:PhysicsBody
   aliveTime = 0
-  //forcePointer:Pointer
-  //showForcePointer:boolean = false
+  shape: PhysicsShape;
 
+
+  static personMesh?:AbstractMesh
+
+  public static async preload(assMan:AssetsManager){
+    assMan.addMeshTask("weebleLoad", "weeble", "assets/", "weeble.glb").onSuccess = (task)=>{
+      Person.personMesh = task.loadedMeshes.find(m=>m.name === "weeble")
+    }
+  }
 
   public constructor(readonly name:string, readonly owner:IGame, personOptions:IPersonOptions){
     //defaults
@@ -50,7 +59,7 @@ export class Person implements IEntity{
       mass:10, 
       showForce:false,
       createMat:true,
-      color:Color3.Gray(),
+      texture:"assets/player.png",
       restitution:0.7,
       friction:0.3
     }
@@ -59,47 +68,48 @@ export class Person implements IEntity{
   
     const scene = owner.scene
     const forcePoint = new TransformNode(`${name}_transform`, scene)
-    const torso = CreateCapsule(`${name}_body`, {  height:options.height, radius:options.radiusTop, radiusTop:options.radiusTop, radiusBottom:options.radiusBottom }, scene)   
 
 
+
+    //const torso = CreateCapsule(`${name}_body`, {  height:options.height, radius:options.radiusTop, radiusTop:options.radiusTop, radiusBottom:options.radiusBottom }, scene)   
+    if (!Person.personMesh){
+      throw Error("Person mesh not loaded")
+    }
+  
+    const torso = Person.personMesh!.clone(`${name}_body`, owner.rootNode )
+    
     if (options.createMat){
       const mat = new StandardMaterial(`${name}_mat`, scene)
-      mat.diffuseColor = options.color!
+      //mat.diffuseColor = options.color!
+      const tex =  new Texture(options.texture!, owner.scene, false,false);
 
-      //const mat = new PBRMaterial(`${name}_mat`, scene)
-      //mat.ambientColor =options.color! 
-      
-      //mat.albedoColor = options.color!
+      mat.diffuseTexture = tex
 
-      torso.material = mat
+
+      torso!.material = mat
     }
 
-    forcePoint.setAbsolutePosition(new Vector3(0,options.offset,0.8))
+    forcePoint.setAbsolutePosition(new Vector3(0,options.offset,-0.8))
     forcePoint.parent = torso
-    torso.setAbsolutePosition(new Vector3(0,5,0))
+    torso!.setAbsolutePosition(new Vector3(0,5,0))
     const shape = new PhysicsShapeCapsule(new Vector3(0,options.capsuleBottom,0), new Vector3(0,options.capsuleTop,0),options.radiusBottom!, scene)
 
     shape.material =  {friction: options.friction, restitution: options.restitution};
-    const body = new PhysicsBody(torso,PhysicsMotionType.DYNAMIC, false, scene)
+    const body = new PhysicsBody(torso!,PhysicsMotionType.DYNAMIC, false, scene)
     body.shape = shape
     body.setMassProperties({ mass:options.mass, centerOfMass:new Vector3(0,options.canterOfGravity,0) })
-    this.rootMesh = torso
+    this.rootMesh = torso!
     
     
     body.setAngularDamping(2)
     this.body = body
     this.forcePoint = forcePoint
-    /*
-    this.forcePointer = new Pointer(`${name}_pointer`, scene, Color3.Blue(),false)
-  
-    this.showForcePointer = options.showForce!
-    this.forcePointer.setVisible(options.showForce!)
-    */
-    
+    this.shape = shape
+
     if (options.start){
       this.setPosition(options.start)
-
     }
+
   }
  
   getPosition():Vector3{
