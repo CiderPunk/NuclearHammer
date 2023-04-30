@@ -25,6 +25,12 @@ export class TestShape implements IEntity{
 
     this.p  = new Pointer(`${name}-pointer`, owner.scene, Color3.Gray(), true)
   }
+  getPosition(): Vector3 {
+    throw new Error("Method not implemented.");
+  }
+  setPosition(pos: Vector3): void {
+    throw new Error("Method not implemented.");
+  }
 
   public update(dT:number){
     

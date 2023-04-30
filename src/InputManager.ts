@@ -9,9 +9,11 @@ export class InputManager implements IInputManager {
   move = new  Vector2(0,0)
   keyMove = new  Vector2(0,0)
   fire:boolean = false
+  jump:boolean = false
   downKeys = new Set<string>()
 
   public toggleDebug?:()=>void
+  public togggleCamera?: () => void;
 
 
   public constructor(owner: IGame) {
@@ -37,45 +39,69 @@ export class InputManager implements IInputManager {
     if (document){
       document.addEventListener("keydown", (e:KeyboardEvent) =>{  
         if (!e.repeat) { 
-          this.keyDown(e.key)
+          if (this.keyDown(e.key)){
+            e.preventDefault()
+            e.stopImmediatePropagation()
+          }
         }
+
       })
-      document.addEventListener("keyup", (e:KeyboardEvent) =>{ this.keyUp(e.key) })
+      document.addEventListener("keyup", (e:KeyboardEvent) =>{ 
+        this.keyUp(e.key)
+
+      })
     }
   }
 
-  keyDown(key: string):void {
+  keyDown(key: string):boolean {
     if (this.downKeys.has(key)){
-      return
+      return false
     }
     this.downKeys.add(key)
-    //console.log(`keydown ${key}`)
+    console.log(`keydown ${key}`)
     switch(key){
+      case "ArrowUp":
       case "w": 
         this.keyMove.y+=1 
         break
+      case "ArrowDown":
       case "s": 
         this.keyMove.y-=1 
         break
-      case "a": 
+      case "ArrowRight":
+      case "d": 
         this.keyMove.x-=1 
         break
-      case "d":
+      case "ArrowLeft":
+      case "a":
         this.keyMove.x+=1 
         break
       case " ":
+        this.jump = true
         this.fire = true
         break
-  
+      case "Shift":
+        this.fire = true
+        break
+
       case "F2":
         if (this.toggleDebug){
           this.toggleDebug()
         }
+        break
+
+      case "F4":
+        if (this.togggleCamera){
+          this.togggleCamera()
+        }  
+        break;
+      default: 
+        return false
     }
 
 
     this.updateMove()
-    
+    return true
   }  
   
   keyUp(key: string):void {
@@ -85,23 +111,31 @@ export class InputManager implements IInputManager {
     this.downKeys.delete(key)
     //console.log(`keyup ${key}`)
     switch(key){
+      
+      case "ArrowUp":
       case "w": 
         this.keyMove.y-=1 
         break
+      case "ArrowDown":
       case "s": 
         this.keyMove.y+=1 
         break
-      case "a": 
+      case "ArrowRight":
+      case "d": 
         this.keyMove.x+=1 
         break
-      case "d":
+      case "ArrowLeft":
+      case "a":
         this.keyMove.x-=1 
         break
-
       case " ":
+        this.jump = false
         this.fire = false
         break
-    
+      case "Shift":
+        this.fire = false
+        break
+      
     }
     this.updateMove()
   }

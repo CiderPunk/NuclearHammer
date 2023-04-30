@@ -66,7 +66,7 @@ export class Player extends Person{
     //const hingeConstraint = new HingeConstraint(new Vector3(1.5,0,0), new Vector3(0,0,-3), Vector3.Right(), Vector3.Right(), owner.scene)
 
     const hammerConstraintSwing = new Physics6DoFConstraint(
-      {pivotA: new Vector3(1.5,0,0), pivotB:new Vector3(0,0,-3), perpAxisA:Vector3.Right(), perpAxisB:Vector3.Right()},
+      {pivotA: new Vector3(-1.5,0,0), pivotB:new Vector3(0,0,-3), perpAxisA:Vector3.Right(), perpAxisB:Vector3.Right()},
       [
         { axis: PhysicsConstraintAxis.ANGULAR_X,minLimit:Math.PI * -0.7 ,maxLimit:Math.PI * 0.9  },
         { axis: PhysicsConstraintAxis.ANGULAR_Y, minLimit:0, maxLimit:0 },
@@ -78,7 +78,7 @@ export class Player extends Person{
       owner.scene)
 
     const hammerConstraintRest = new Physics6DoFConstraint(
-      {pivotA: new Vector3(1.5,0,0), pivotB:new Vector3(0,0,-3), perpAxisA:Vector3.Right(), perpAxisB:Vector3.Right()},
+      {pivotA: new Vector3(-1.5,0,0), pivotB:new Vector3(0,0,-3), perpAxisA:Vector3.Right(), perpAxisB:Vector3.Right()},
       [
         { axis: PhysicsConstraintAxis.ANGULAR_X,minLimit:Math.PI * -0.5 ,maxLimit:Math.PI * -0.5  },
         { axis: PhysicsConstraintAxis.ANGULAR_Y, minLimit:0, maxLimit:0 },
@@ -91,7 +91,7 @@ export class Player extends Person{
 
 
     const hammerConstraintDraw = new Physics6DoFConstraint(
-      {pivotA: new Vector3(1.5,0,0), pivotB:new Vector3(0,0,-3), perpAxisA:Vector3.Right(), perpAxisB:Vector3.Right()},
+      {pivotA: new Vector3(-1.5,0,0), pivotB:new Vector3(0,0,-3), perpAxisA:Vector3.Right(), perpAxisB:Vector3.Right()},
       [
         { axis: PhysicsConstraintAxis.ANGULAR_X,minLimit:Math.PI * -0.7 ,maxLimit:Math.PI * -0.7  },
         { axis: PhysicsConstraintAxis.ANGULAR_Y, minLimit:0, maxLimit:0 },
@@ -111,8 +111,6 @@ export class Player extends Person{
     })
 
 
-
-
     this.setHammerState(HammerState.rest)
     hammerBody.setCollisionCallbackEnabled(true)
     hammerBody.getCollisionObservable().add((collisionEvent)=>{
@@ -130,6 +128,8 @@ export class Player extends Person{
       }
     })
     this.hammerBody = hammerBody
+
+    
   }
 
 
@@ -147,7 +147,6 @@ export class Player extends Person{
   }
   
   update(dT: number): void {
-
     this.aliveTime+=dT
     const amp =1500
     const force = new Vector3(amp * this.input.move.x,0,amp* this.input.move.y)
@@ -179,15 +178,13 @@ export class Player extends Person{
           this.setHammerState(HammerState.rest)
         }
         break
-
     }
 
-
-
+/*
     if (this.showForcePointer){
       this.forcePointer.set(point,force)
     }
-
+*/
   }
 
 }
