@@ -1,9 +1,9 @@
 import { FreeCamera } from "@babylonjs/core/Cameras/freeCamera";
 import { Engine } from "@babylonjs/core/Engines/engine";
 import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
-import { Color4, Vector3 } from "@babylonjs/core/Maths/math";
+import { Color3, Color4, Vector3 } from "@babylonjs/core/Maths/math";
 import { Scene } from "@babylonjs/core/scene";
-import { IConfigurationProvider, IEntity, IGame } from "./interfaces";
+import { IConfigurationProvider, IEntity, IGame, ILevelSpec } from "./interfaces";
 //import { Pointer } from "./helpers/pointer";
 import HavokPhysics from "@babylonjs/havok";
 import { HavokPlugin } from "@babylonjs/core/Physics/v2/Plugins"
@@ -32,6 +32,9 @@ import { Texture } from "@babylonjs/core/Materials/Textures/texture";
 import { Person } from "./entities/person";
 import {AssetsManager} from "@babylonjs/core/Misc/assetsManager"
 import { AssetContainer, KeepAssets } from "@babylonjs/core/assetContainer";
+import {AdvancedDynamicTexture, TextBlock, Control} from "@babylonjs/gui/2D"
+import { CubicEase, EasingFunction } from "@babylonjs/core/Animations/easing";
+import { Spinner } from "./entities/spinner";
 
 export class Game implements IGame{
   readonly engine: Engine;
@@ -49,10 +52,148 @@ export class Game implements IGame{
   level?: Level;
   emitter: AbstractMesh;
   gameCamera: TargetCamera;
-  ConfigurationProvider: IConfigurationProvider
+  configProvider: IConfigurationProvider
   assContainer: AssetContainer;
   rootNode: TransformNode;
+  infoBox: TextBlock;
+  infoTimeout?: NodeJS.Timeout;
 
+
+  levels:Array<ILevelSpec> = [ 
+    { filename:"map1.gltf", goal:5, kids:30, spawnRadius:15, intro:"Get those kids to school!\nThe only way you know how;\nWith your trusty\nNuclear Impact Hammer!\n"},
+   // { filename:"map1.gltf", goal:5, kids:100, spawnRadius:18, intro:"Level 2\n"},
+    { filename:"map2.gltf", goal:10, kids:30, spawnRadius:15, intro:"Level 2\n"},
+    { filename:"map3.gltf", goal:5, kids:30, spawnRadius:15, intro:"Level 3!\n"},
+    { filename:"map1.gltf", goal:10, kids:100, spawnRadius:18, intro:"Oh no!\n"},
+  ]
+  goalCount: number = 0;
+  currentLevel?: ILevelSpec;
+  
+  public constructor(element:string){
+
+    const keepAssets = new KeepAssets()
+    this.configProvider  = new ConfigurationProvider()
+    // Get the canvas element from the DOM.
+    const canvas = document.getElementById(element) as HTMLCanvasElement;
+
+    // Associate a Babylon Engine to it.
+    this.engine = new Engine(canvas);
+
+    // Create our first scene.
+    this.scene = new Scene(this.engine);
+    
+
+    this.scene.ambientColor = new Color3(0.9,0.8,0.1)
+    this.scene.clearColor = new Color4(0.4,0.5,0.7,1.0)
+
+    //oh god why?!?!?
+    this.scene.useRightHandedSystem = true
+
+    this.rootNode= new TransformNode("root", this.scene)
+
+    const cam = new TargetCamera("gamecam",  new Vector3().copyFrom(Constants.cameraOffset), this.scene)
+    cam.setTarget(new Vector3(0,0,0))
+    this.gameCamera = cam
+
+    // This creates and positions a free camera (non-mesh)
+    this.freeCamera = new FreeCamera("camera1", new Vector3(0, 20, -30), this.scene);
+
+    keepAssets.cameras.push(this.gameCamera, this.freeCamera)
+
+    // This targets the camera to scene origin
+    this.freeCamera.setTarget(Vector3.Zero());
+
+    // This attaches the camera to the canvas
+    this.freeCamera.attachControl(canvas, true);
+
+    //emitter dummy
+    this.emitter = CreateBox("emitter", {size:0.01}, this.scene)
+    keepAssets.meshes.push(this.emitter)
+    this.emitter.isVisible = false
+    
+    const inputManager = new InputManager(this)
+    inputManager.toggleDebug = ()=>{  
+      console.log("show debug")
+      this.scene.debugLayer.isVisible() ? this.scene.debugLayer.hide() : this.scene.debugLayer.show()
+    }
+
+    inputManager.togggleCamera = ()=>{  
+      console.log("camera toggle")
+       this.scene.activeCamera = (this.scene.activeCamera === this.gameCamera ? this.freeCamera : this.gameCamera )
+    }
+
+    inputManager.nextLevel = ()=>{
+      console.log("next level")
+      if (this.goalCount < this.currentLevel!.goal){
+        this.configProvider.setConfig({ level: this.configProvider.config.level! + 1})
+        this.loadLevel(this.levels[this.configProvider.config.level! % this.levels.length])
+      }
+      else{
+        const delivered = this.currentLevel!.kids - this.goalCount
+        const need = this.goalCount - this.currentLevel!.goal 
+        this.showInfo(`You've delivered ${delivered} truants to school\nYou need ${need} more`)
+      }
+    }
+
+    this.inputManager = inputManager
+    const gui = AdvancedDynamicTexture.CreateFullscreenUI("UI");
+
+    //info text box
+    const info  = new TextBlock();
+    info.color = "white"
+    info.fontSize = "48px"
+    info.top = "20p%"
+    info.verticalAlignment = Control.VERTICAL_ALIGNMENT_TOP
+    gui.addControl(info)
+    this.infoBox = info
+
+    //this.showInfo("Get those kids to school!\nThe only way you know how;\nWith your trusty\nNuclear Impact Hammer!\n")
+
+    //set up physics
+    HavokPhysics().then((havok) => {
+      this.scene.enablePhysics(new Vector3(0,-9.81, 0), new HavokPlugin(true, havok));
+      this.physicsHelper = new PhysicsHelper(this.scene)
+      // Render every frame
+      this.engine.runRenderLoop(() => {
+        if (this.gameReady){
+          this.render()
+        }
+      })
+      
+     
+    });
+
+    const assMan = new AssetsManager()
+    //load some stuff...
+    Person.preload(assMan)
+    assMan.loadAsync()
+
+    this.assContainer = new AssetContainer(this.scene)
+    assMan.onFinish = (tasks)=>{
+      this.assContainer.moveAllFromScene(keepAssets)
+      this.loadLevel(this.levels[this.configProvider.config.level! % this.levels.length])
+    };
+  }
+
+
+
+  spawnSpinner(pivot: Vector3): void {
+    this.ents.push(new Spinner("spinner1", this, pivot, Math.PI * 0.15, 80))
+  }
+  
+
+  loadLevel(levelSpec:ILevelSpec){
+    if (this.level){
+      this.level.dispose()
+      this.ents.forEach(e=>e.dispose())
+      this.ents.length = 0
+    }
+    this.showInfo(levelSpec.intro)
+    this.currentLevel = levelSpec
+    this.level  = new Level(this, levelSpec.filename, this.configProvider.config.enableShadows!)
+  }
+
+  
   public goalEffect(point:Vector3, direction:Vector3){
     var particleSystem = new GPUParticleSystem("particles", { capacity:1000 }, this.scene);
     particleSystem.particleTexture = new Texture("assets/flare.png", this.scene);
@@ -77,7 +218,6 @@ export class Game implements IGame{
     setTimeout(()=>{ particleSystem.dispose() }, 500)
   }    
 
-
   public makeNuke(point:Vector3, radius:number,  strength:number):void{
     this.physicsHelper!.applyRadialExplosionForce(point.add(new Vector3(0,0,0)), radius, strength, PhysicsRadialImpulseFalloff.Linear )
     ParticleHelper.CreateAsync("explosion", this.scene).then((set) => {
@@ -90,98 +230,28 @@ export class Game implements IGame{
     });
   }
 
-  public constructor(element:string){
-
-    const keepAssets = new KeepAssets()
-
-
-    this.ConfigurationProvider  = new ConfigurationProvider()
-    // Get the canvas element from the DOM.
-    const canvas = document.getElementById(element) as HTMLCanvasElement;
-
-    // Associate a Babylon Engine to it.
-    this.engine = new Engine(canvas);
-
-    // Create our first scene.
-    this.scene = new Scene(this.engine);
-    
-    //oh god why?!?!?
-    this.scene.useRightHandedSystem = true
-
-    this.rootNode= new TransformNode("root", this.scene)
-
-    const cam = new TargetCamera("gamecam",  new Vector3().copyFrom(Constants.cameraOffset), this.scene)
-    cam.setTarget(new Vector3(0,0,0))
-    this.gameCamera = cam
-
-    // This creates and positions a free camera (non-mesh)
-    this.freeCamera = new FreeCamera("camera1", new Vector3(0, 20, -30), this.scene);
-
-    keepAssets.cameras.push(this.gameCamera, this.freeCamera)
-
-
-    // This targets the camera to scene origin
-    this.freeCamera.setTarget(Vector3.Zero());
-
-    // This attaches the camera to the canvas
-    this.freeCamera.attachControl(canvas, true);
-
-    //emitter dummy
-    this.emitter = CreateBox("emitter", {size:0.01}, this.scene)
-    keepAssets.meshes.push(this.emitter)
-    this.emitter.isVisible = false
-    
-    const inputManager = new InputManager(this)
-    inputManager.toggleDebug = ()=>{  
-      console.log("show debug")
-      this.scene.debugLayer.isVisible() ? this.scene.debugLayer.hide() : this.scene.debugLayer.show()
+  
+  
+  goalHit(): void {
+    this.goalCount--
+    if (this.goalCount < this.currentLevel!.goal){
+      this.showInfo("Goal reached\nPress Enter to continue", 2000)
     }
-
-    inputManager.togggleCamera = ()=>{  
-      console.log("camera toggle")
-       this.scene.activeCamera = (this.scene.activeCamera === this.gameCamera ? this.freeCamera : this.gameCamera )
+    if (this.goalCount  == 0){
+      this.showInfo("You got them all!\nPress Enter to continue", 5000)
     }
-
-    this.inputManager = inputManager
-
-
-
-    //set up physics
-    HavokPhysics().then((havok) => {
-      this.scene.enablePhysics(new Vector3(0,-9.81, 0), new HavokPlugin(true, havok));
-
-      this.physicsHelper = new PhysicsHelper(this.scene)
-
-      // Render every frame
-      this.engine.runRenderLoop(() => {
-        if (this.gameReady){
-          this.render()
-        }
-      })
-      
-     
-    });
-
-
-    const assMan = new AssetsManager()
-
-    //load some stuff...
-    Person.preload(assMan)
-    assMan.loadAsync()
-
-    this.assContainer = new AssetContainer(this.scene)
-    assMan.onFinish = (tasks)=>{
-      this.assContainer.moveAllFromScene(keepAssets)
-      this.level  = new Level(this, "map1.gltf", this.ConfigurationProvider.config.enableShadows!)
-    };
-
-
   }
 
 
+  showInfo(text:string, duration:number = 4000):void{
+    clearTimeout(this.infoTimeout)
+    this.infoBox.text = text
+    this.infoTimeout = setTimeout(()=>{ this.infoBox.text = ""}, duration)
+  }
+
   startGame(){
     //spawn kids
-    const kids = this.spawnKids(30, 15)
+    const kids = this.spawnKids(this.currentLevel!.kids,this.currentLevel!.spawnRadius)
     
     kids.forEach(k=>{
       this.ents.push(k)
@@ -204,6 +274,7 @@ export class Game implements IGame{
       const kid = new Kid("kid"+i, this, new Vector3(dist* Math.sin(ang), 5,dist*(Math.cos(ang))),Math.random() * 200000)
       res.push(kid)
     }
+    this.goalCount = count
     return res
   }
  

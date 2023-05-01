@@ -111,6 +111,10 @@ export class Person implements IEntity{
     }
 
   }
+  dispose(): void {
+    this.body.dispose()
+    this.rootMesh.dispose()
+  }
  
   getPosition():Vector3{
     return this.body.transformNode.getAbsolutePosition()

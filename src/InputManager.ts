@@ -14,6 +14,7 @@ export class InputManager implements IInputManager {
 
   public toggleDebug?:()=>void
   public togggleCamera?: () => void;
+  public nextLevel?: () => void;
 
 
   public constructor(owner: IGame) {
@@ -95,6 +96,13 @@ export class InputManager implements IInputManager {
           this.togggleCamera()
         }  
         break;
+
+        case "Enter":
+          if (this.nextLevel){
+            this.nextLevel()
+          }  
+          break;
+
       default: 
         return false
     }

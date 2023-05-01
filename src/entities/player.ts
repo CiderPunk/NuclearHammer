@@ -1,7 +1,7 @@
 import { Color3, Vector3, Vector4 } from "@babylonjs/core/Maths/math";
 import { IGame, IInputManager } from "../interfaces";
 import { Person } from "./person";
-import { CreateCylinder, TransformNode } from "@babylonjs/core/Meshes";
+import { AbstractMesh, CreateCylinder, TransformNode } from "@babylonjs/core/Meshes";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { BallAndSocketConstraint, HingeConstraint, Physics6DoFConstraint, PhysicsBody, PhysicsConstraint, PhysicsConstraintAxis, PhysicsHelper, PhysicsMotionType, PhysicsShapeCylinder } from "@babylonjs/core/Physics";
 import { GridMaterial } from "@babylonjs/materials/grid/gridMaterial";
@@ -34,6 +34,8 @@ export class Player extends Person{
   swingTime = 0;
   primed = false
 
+  meshes = new Array<AbstractMesh>()
+
   public constructor(name:string, owner:IGame, readonly input:IInputManager){
     super(name, owner, { radiusTop:1, radiusBottom:1.6, height:5, capsuleBottom:-1.2, canterOfGravity:-3,offset:-3.1 , showForce:false, mass:60, createMat:true  })
     
@@ -60,6 +62,9 @@ export class Player extends Person{
     hammerShaft.position.z-=2
     hammerHead.material = hammerMat
     hammerShaft.material = hammerMat
+
+    this.meshes
+
     const shape = new PhysicsShapeCylinder(new Vector3(0,-1,0), new Vector3(0,1,0), 0.7, owner.scene)
     
     shape.material = { friction:1, restitution:0.1}
@@ -69,6 +74,8 @@ export class Player extends Person{
     
     hammerBody.setMassProperties({ mass:0.2})
     hammerShaft.setParent(hammerBody.transformNode)
+
+this.meshes.push(hammerShaft, hammerHead)
 
     //const hingeConstraint = new HingeConstraint(new Vector3(1.5,0,0), new Vector3(0,0,-3), Vector3.Right(), Vector3.Right(), owner.scene)
 
@@ -119,8 +126,8 @@ export class Player extends Person{
 
 
     this.setHammerState(HammerState.rest)
-    hammerBody.setCollisionCallbackEnabled(true)
-    hammerBody.getCollisionObservable().add((collisionEvent)=>{
+      hammerBody.setCollisionCallbackEnabled(true)
+      hammerBody.getCollisionObservable().add((collisionEvent)=>{
 
       if (collisionEvent.collider._pluginData.entity && collisionEvent.point !== null){
         const player = collisionEvent.collider._pluginData.entity as Player
@@ -190,11 +197,20 @@ export class Player extends Person{
         break
     }
 
+
+
 /*
     if (this.showForcePointer){
       this.forcePointer.set(point,force)
     }
 */
+  }
+  
+  dispose(): void {
+    this.meshes.forEach(m=>{m.dispose()})
+    this.hammerBody.dispose()
+    super.dispose()
+    
   }
 
 }

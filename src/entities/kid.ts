@@ -17,7 +17,7 @@ export class Kid extends Person implements IKid{
     super(name, owner, { start:startPoint, texture:`assets/kid${tex}.png`})
     
     this.shape.filterMembershipMask = CollisionMask.Kid
-    this.shape.filterCollideMask = CollisionMask.Player | CollisionMask.Goal
+    this.shape.filterCollideMask = CollisionMask.Kid| CollisionMask.Player | CollisionMask.Goal
 
     this.body._pluginData.entity = this
 

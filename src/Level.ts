@@ -70,7 +70,6 @@ export class Level implements ILevel, IDisposable{
             if (level && kid){
               level.goalHit(kid)
             }
-
           })
         }
         if (mesh.name.indexOf("block") > -1){
@@ -82,23 +81,27 @@ export class Level implements ILevel, IDisposable{
       goalRoot.setEnabled(false)
 
 
-
       this.loadedRoot.getDescendants().forEach(n=>{
-        if (enableShadows &&  n instanceof AbstractMesh){
+        const absMesh = n  as AbstractMesh
+
+        if (enableShadows &&  absMesh){
           if (n.name.indexOf("ground") > -1){
-            n.receiveShadows = true
+            absMesh.receiveShadows = true
           }
         }
         if (n instanceof DirectionalLight){
-          
+        
           if (n.intensity > 1){ n.intensity = 1}
           if (n.name.indexOf("sun") > -1){
             this.light = n
           }
-          
-          //this.light = new DirectionalLight("dir", Vector3.Down(), scene)
-          //this.light.position = n.getAbsolutePosition()
-          //n.dispose()
+        }
+
+        if (n.name.indexOf("SPINNER") > -1 && absMesh){
+
+
+          this.owner.spawnSpinner(absMesh.getAbsolutePosition())
+
         }
       })
 
@@ -114,6 +117,7 @@ export class Level implements ILevel, IDisposable{
       kid.reachedGoal()
       this.goalCount++
       console.log(`goal: ${this.goalCount}`)
+      this.owner.goalHit()
     }
   }
 
