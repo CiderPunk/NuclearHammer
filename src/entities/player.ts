@@ -43,15 +43,10 @@ export class Player extends Person{
     this.shape.filterCollideMask = CollisionMask.Kid | CollisionMask.Goal
 
     this.rootMesh.scaling.set(1.2,1.2,1.2)
- 
-    //const gridMaterial = new GridMaterial("grid", owner.scene);
-    //gridMaterial.gridRatio = 0.1
-    //this.rootMesh.material = gridMaterial
 
     //responsive controls
-    this.body.setLinearDamping(2)
+     this.body.setLinearDamping(0.5)
     
-
     const hammerMat = new StandardMaterial("hammer_mat", owner.scene)
     hammerMat.diffuseColor = new Color3(1,0.8,0.05)
     hammerMat.specularPower = 50
@@ -63,11 +58,11 @@ export class Player extends Person{
     hammerHead.material = hammerMat
     hammerShaft.material = hammerMat
 
-    this.meshes
+
 
     const shape = new PhysicsShapeCylinder(new Vector3(0,-1,0), new Vector3(0,1,0), 0.7, owner.scene)
     
-    shape.material = { friction:1, restitution:0.1}
+    shape.material = { friction:2, restitution:0.1}
     const hammerBody = new PhysicsBody(hammerHead,PhysicsMotionType.DYNAMIC, false, owner.scene)
     hammerBody.shape = shape
     hammerBody._pluginData.entity = this
@@ -75,7 +70,7 @@ export class Player extends Person{
     hammerBody.setMassProperties({ mass:0.2})
     hammerShaft.setParent(hammerBody.transformNode)
 
-this.meshes.push(hammerShaft, hammerHead)
+    this.meshes.push(hammerShaft, hammerHead)
 
     //const hingeConstraint = new HingeConstraint(new Vector3(1.5,0,0), new Vector3(0,0,-3), Vector3.Right(), Vector3.Right(), owner.scene)
 
@@ -165,7 +160,7 @@ this.meshes.push(hammerShaft, hammerHead)
   
   update(dT: number): void {
     this.aliveTime+=dT
-    const amp =1500
+    const amp =1200
     const force = new Vector3(amp * this.input.move.x,0,amp* this.input.move.y)
     const point = this.forcePoint.getAbsolutePosition()
     this.body.applyForce(force, point)
@@ -198,7 +193,11 @@ this.meshes.push(hammerShaft, hammerHead)
     }
 
 
-
+    if (this.input.jump){
+      //check on ground
+      
+      this.body.applyImpulse(new Vector3(0,100,0), this.body.transformNode.getAbsolutePosition())
+    }
 /*
     if (this.showForcePointer){
       this.forcePointer.set(point,force)

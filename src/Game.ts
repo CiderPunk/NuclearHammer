@@ -1,18 +1,17 @@
 import { FreeCamera } from "@babylonjs/core/Cameras/freeCamera";
 import { Engine } from "@babylonjs/core/Engines/engine";
-import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
 import { Color3, Color4, Vector3 } from "@babylonjs/core/Maths/math";
-import { Scene } from "@babylonjs/core/scene";
+import { Nullable, Scene } from "@babylonjs/core";
 import { IConfigurationProvider, IEntity, IGame, ILevelSpec } from "./interfaces";
 //import { Pointer } from "./helpers/pointer";
-import HavokPhysics from "@babylonjs/havok";
+import HavokPhysics, { RayCastResult } from "@babylonjs/havok";
 import { HavokPlugin } from "@babylonjs/core/Physics/v2/Plugins"
 import "@babylonjs/core/Physics/v2/physicsEngineComponent"
 //import "@Babylonjs/core/Particles/webgl2ParticleSystem"
 
-import {BaseParticleSystem, GPUParticleSystem, ParticleHelper} from "@babylonjs/core/Particles"
+import { GPUParticleSystem, ParticleHelper} from "@babylonjs/core/Particles"
 
-import { PhysicsAggregate, PhysicsHelper, PhysicsRadialImpulseFalloff, PhysicsShapeType } from "@babylonjs/core/Physics"
+import { PhysicsEngine, PhysicsHelper, PhysicsRadialImpulseFalloff, PhysicsRaycastResult, PhysicsShapeType } from "@babylonjs/core/Physics"
 
 //spector start
 import "@babylonjs/core/Debug/debugLayer"; // Augments the scene with the debug methods
@@ -33,8 +32,9 @@ import { Person } from "./entities/person";
 import {AssetsManager} from "@babylonjs/core/Misc/assetsManager"
 import { AssetContainer, KeepAssets } from "@babylonjs/core/assetContainer";
 import {AdvancedDynamicTexture, TextBlock, Control} from "@babylonjs/gui/2D"
-import { CubicEase, EasingFunction } from "@babylonjs/core/Animations/easing";
 import { Spinner } from "./entities/spinner";
+import { Raycaster } from "./raycaster";
+
 
 export class Game implements IGame{
   readonly engine: Engine;
@@ -68,7 +68,8 @@ export class Game implements IGame{
   ]
   goalCount: number = 0;
   currentLevel?: ILevelSpec;
-  
+  raycaster?: Raycaster;
+
   public constructor(element:string){
 
     const keepAssets = new KeepAssets()
@@ -153,13 +154,16 @@ export class Game implements IGame{
     HavokPhysics().then((havok) => {
       this.scene.enablePhysics(new Vector3(0,-9.81, 0), new HavokPlugin(true, havok));
       this.physicsHelper = new PhysicsHelper(this.scene)
+
+
+      this.raycaster = new Raycaster(this)
       // Render every frame
       this.engine.runRenderLoop(() => {
         if (this.gameReady){
           this.render()
         }
       })
-      
+
      
     });
 
@@ -175,7 +179,9 @@ export class Game implements IGame{
     };
   }
 
-
+  raycast(start:Vector3, end:Vector3):PhysicsRaycastResult{
+    return this.raycaster!.raycast(start, end)
+  }
 
   spawnSpinner(pivot: Vector3): void {
     this.ents.push(new Spinner("spinner1", this, pivot, Math.PI * 0.15, 80))

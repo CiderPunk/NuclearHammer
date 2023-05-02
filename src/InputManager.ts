@@ -79,7 +79,7 @@ export class InputManager implements IInputManager {
         break
       case " ":
         this.jump = true
-        this.fire = true
+        //this.fire = true
         break
       case "Shift":
         this.fire = true
