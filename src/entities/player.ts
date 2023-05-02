@@ -35,6 +35,7 @@ export class Player extends Person{
   primed = false
 
   meshes = new Array<AbstractMesh>()
+  jumpTimeout: number = 0
 
   public constructor(name:string, owner:IGame, readonly input:IInputManager){
     super(name, owner, { radiusTop:1, radiusBottom:1.6, height:5, capsuleBottom:-1.2, canterOfGravity:-3,offset:-3.1 , showForce:false, mass:60, createMat:true  })
@@ -192,10 +193,12 @@ export class Player extends Person{
         break
     }
 
-
-    if (this.input.jump){
+    //reduce jump timeout
+    this.jumpTimeout -= dT
+    
+    if (this.input.jump && this.jumpTimeout <= 0){
       //check on ground
-      
+      this.jumpTimeout = 300
       this.body.applyImpulse(new Vector3(0,100,0), this.body.transformNode.getAbsolutePosition())
     }
 /*
