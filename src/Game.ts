@@ -1,63 +1,54 @@
 import { FreeCamera } from "@babylonjs/core/Cameras/freeCamera";
 import { Engine } from "@babylonjs/core/Engines/engine";
-import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
 import { Color3, Color4, Vector3 } from "@babylonjs/core/Maths/math";
-import { Scene } from "@babylonjs/core/scene";
+import { Scene } from "@babylonjs/core";
 import { IConfigurationProvider, IEntity, IGame, ILevelSpec } from "./interfaces";
-//import { Pointer } from "./helpers/pointer";
 import HavokPhysics from "@babylonjs/havok";
 import { HavokPlugin } from "@babylonjs/core/Physics/v2/Plugins"
 import "@babylonjs/core/Physics/v2/physicsEngineComponent"
-//import "@Babylonjs/core/Particles/webgl2ParticleSystem"
-
-import {BaseParticleSystem, GPUParticleSystem, ParticleHelper} from "@babylonjs/core/Particles"
-
-import { PhysicsAggregate, PhysicsHelper, PhysicsRadialImpulseFalloff, PhysicsShapeType } from "@babylonjs/core/Physics"
+import { GPUParticleSystem, ParticleHelper} from "@babylonjs/core/Particles"
+import { PhysicsHelper, PhysicsRadialImpulseFalloff } from "@babylonjs/core/Physics"
 
 //spector start
 import "@babylonjs/core/Debug/debugLayer"; // Augments the scene with the debug methods
 import "@babylonjs/inspector"; // Injects a local ES6 version of the inspector to prevent
 
+import { AbstractMesh, CreateBox, TransformNode } from "@babylonjs/core/Meshes"
+import { Player } from "./entities/player"
+import { InputManager } from "./InputManager"
+import { Kid } from "./entities/kid"
+import { Level } from "./Level"
 
-import { AbstractMesh, CreateBox, TransformNode } from "@babylonjs/core/Meshes";
-import { Player } from "./entities/player";
-import { InputManager } from "./InputManager";
-import { Kid } from "./entities/kid";
-import { Level } from "./Level";
-import { Camera } from "@babylonjs/core/Cameras/camera";
-import { TargetCamera } from "@babylonjs/core/Cameras/targetCamera";
+import { TargetCamera } from "@babylonjs/core/Cameras/targetCamera"
 import { Constants } from "./constants";
-import { ConfigurationProvider } from "./ConfigurationProvider";
-import { Texture } from "@babylonjs/core/Materials/Textures/texture";
-import { Person } from "./entities/person";
+import { ConfigurationProvider } from "./ConfigurationProvider"
+import { Texture } from "@babylonjs/core/Materials/Textures/texture"
+import { Person } from "./entities/person"
 import {AssetsManager} from "@babylonjs/core/Misc/assetsManager"
-import { AssetContainer, KeepAssets } from "@babylonjs/core/assetContainer";
-import {AdvancedDynamicTexture, TextBlock, Control} from "@babylonjs/gui/2D"
-import { CubicEase, EasingFunction } from "@babylonjs/core/Animations/easing";
+import { AssetContainer, KeepAssets } from "@babylonjs/core/assetContainer"
+import {AdvancedDynamicTexture, TextBlock } from "@babylonjs/gui/2D"
 import { Spinner } from "./entities/spinner";
 
 export class Game implements IGame{
-  readonly engine: Engine;
-  readonly scene: Scene;
-  ground: any;
-  sphere: any;
-  material: any;
-  freeCamera: FreeCamera;
-  player?: IEntity;
+  readonly engine: Engine
+  readonly scene: Scene
+  player?: IEntity
 
   readonly ents = new Array<IEntity>()
-  physicsHelper?: PhysicsHelper;
-  gameReady: any;
-  inputManager: InputManager;
-  level?: Level;
-  emitter: AbstractMesh;
-  gameCamera: TargetCamera;
+  physicsHelper?: PhysicsHelper
+  gameReady: boolean = false
+  inputManager: InputManager
+  level?: Level
+  emitter: AbstractMesh
+  gameCamera: TargetCamera
   configProvider: IConfigurationProvider
-  assContainer: AssetContainer;
-  rootNode: TransformNode;
-  infoBox: TextBlock;
-  infoTimeout?: NodeJS.Timeout;
-
+  assContainer: AssetContainer
+  rootNode: TransformNode
+  infoBox: TextBlock
+  infoTimeout?: NodeJS.Timeout
+  goalCount: number = 0
+  currentLevel?: ILevelSpec
+  freeCamera: FreeCamera
 
   levels:Array<ILevelSpec> = [ 
     { filename:"map1.gltf", goal:5, kids:30, spawnRadius:15, intro:"Get those kids to school!\nThe only way you know how;\nWith your trusty\nNuclear Impact Hammer!\n"},
@@ -66,8 +57,7 @@ export class Game implements IGame{
     { filename:"map3.gltf", goal:5, kids:30, spawnRadius:15, intro:"Level 3!\n"},
     { filename:"map1.gltf", goal:10, kids:100, spawnRadius:18, intro:"Oh no!\n"},
   ]
-  goalCount: number = 0;
-  currentLevel?: ILevelSpec;
+
   
   public constructor(element:string){
 
@@ -81,36 +71,8 @@ export class Game implements IGame{
 
     // Create our first scene.
     this.scene = new Scene(this.engine);
-    
 
-    this.scene.ambientColor = new Color3(0.9,0.8,0.1)
-    this.scene.clearColor = new Color4(0.4,0.5,0.7,1.0)
 
-    //oh god why?!?!?
-    this.scene.useRightHandedSystem = true
-
-    this.rootNode= new TransformNode("root", this.scene)
-
-    const cam = new TargetCamera("gamecam",  new Vector3().copyFrom(Constants.cameraOffset), this.scene)
-    cam.setTarget(new Vector3(0,0,0))
-    this.gameCamera = cam
-
-    // This creates and positions a free camera (non-mesh)
-    this.freeCamera = new FreeCamera("camera1", new Vector3(0, 20, -30), this.scene);
-
-    keepAssets.cameras.push(this.gameCamera, this.freeCamera)
-
-    // This targets the camera to scene origin
-    this.freeCamera.setTarget(Vector3.Zero());
-
-    // This attaches the camera to the canvas
-    this.freeCamera.attachControl(canvas, true);
-
-    //emitter dummy
-    this.emitter = CreateBox("emitter", {size:0.01}, this.scene)
-    keepAssets.meshes.push(this.emitter)
-    this.emitter.isVisible = false
-    
     const inputManager = new InputManager(this)
     inputManager.toggleDebug = ()=>{  
       console.log("show debug")
@@ -136,14 +98,46 @@ export class Game implements IGame{
     }
 
     this.inputManager = inputManager
+
+
+
+   
+    this.scene.ambientColor = new Color3(0.9,0.8,0.1)
+    this.scene.clearColor = new Color4(0.4,0.5,0.7,1.0)
+
+    //oh god why?!?!?
+    this.scene.useRightHandedSystem = true
+
+    this.rootNode= new TransformNode("root", this.scene)
+
+    const cam = new TargetCamera("gamecam",  new Vector3().copyFrom(Constants.cameraOffset), this.scene)
+    cam.setTarget(new Vector3(0,0,0))
+    this.gameCamera = cam
+    // This creates and positions a free camera (non-mesh)
+    this.freeCamera = new FreeCamera("camera1", new Vector3(0, 20, -30), this.scene);
+
+    keepAssets.cameras.push(this.gameCamera, this.freeCamera)
+
+    // This targets the camera to scene origin
+    this.freeCamera.setTarget(Vector3.Zero());
+
+    // This attaches the camera to the canvas
+    this.freeCamera.attachControl(canvas, true);
+
+    //emitter dummy
+    this.emitter = CreateBox("emitter", {size:0.01}, this.scene)
+    keepAssets.meshes.push(this.emitter)
+    this.emitter.isVisible = false
+    
+
     const gui = AdvancedDynamicTexture.CreateFullscreenUI("UI");
 
     //info text box
     const info  = new TextBlock();
     info.color = "white"
     info.fontSize = "48px"
-    info.top = "20p%"
-    info.verticalAlignment = Control.VERTICAL_ALIGNMENT_TOP
+    //info.top = "20%"
+    //info.verticalAlignment = Control.VERTICAL_ALIGNMENT_TOP
     gui.addControl(info)
     this.infoBox = info
 
@@ -159,8 +153,6 @@ export class Game implements IGame{
           this.render()
         }
       })
-      
-     
     });
 
     const assMan = new AssetsManager()
@@ -174,8 +166,6 @@ export class Game implements IGame{
       this.loadLevel(this.levels[this.configProvider.config.level! % this.levels.length])
     };
   }
-
-
 
   spawnSpinner(pivot: Vector3): void {
     this.ents.push(new Spinner("spinner1", this, pivot, Math.PI * 0.15, 80))
@@ -268,6 +258,8 @@ export class Game implements IGame{
 
   spawnKids(count:number, spread:number = 20):Array<Kid> {
     const res = new Array<Kid>()
+
+ 
     for (var i = 0; i < count; i++){
       const ang = Math.PI * 2 *Math.random()
       const dist = Math.random() * spread
@@ -275,6 +267,7 @@ export class Game implements IGame{
       res.push(kid)
     }
     this.goalCount = count
+
     return res
   }
  

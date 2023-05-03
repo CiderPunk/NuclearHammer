@@ -20,8 +20,6 @@ export class Level implements ILevel, IDisposable{
   light?: DirectionalLight;
   goalCount: number;
 
-
-
   public constructor(readonly owner:IGame, level:string, readonly enableShadows:boolean){
     
     this.goalCount = 0
@@ -116,7 +114,7 @@ export class Level implements ILevel, IDisposable{
     if (kid.active){
       kid.reachedGoal()
       this.goalCount++
-      console.log(`goal: ${this.goalCount}`)
+      //console.log(`goal: ${this.goalCount}`)
       this.owner.goalHit()
     }
   }
