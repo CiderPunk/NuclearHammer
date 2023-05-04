@@ -105,6 +105,7 @@ export class Person implements IEntity{
     this.body = body
     this.forcePoint = forcePoint
     this.shape = shape
+    this.body._pluginData.entity = this
 
     if (options.start){
       this.setPosition(options.start)

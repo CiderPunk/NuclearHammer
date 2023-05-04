@@ -148,7 +148,6 @@ export class Game implements IGame{
     gui.addControl(info)
     this.infoBox = info
 
-    //this.showInfo("Get those kids to school!\nThe only way you know how;\nWith your trusty\nNuclear Impact Hammer!\n")
 
     //set up physics
     HavokPhysics().then((havok) => {
