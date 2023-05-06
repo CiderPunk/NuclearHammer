@@ -1,6 +1,7 @@
 import { Vector2, Vector3 } from "@babylonjs/core/Maths/math";
 import { TransformNode } from "@babylonjs/core/Meshes";
 import { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
+import { PhysicsRaycastResult } from "@babylonjs/core/Physics";
 import { AssetContainer } from "@babylonjs/core/assetContainer";
 import { IDisposable, Scene } from "@babylonjs/core/scene";
 
@@ -15,6 +16,7 @@ export interface IGame{
   assContainer:AssetContainer
   rootNode: TransformNode
   showInfo(text:string, duration?:number):void
+  raycast(start:Vector3, end:Vector3):PhysicsRaycastResult
 }
 
 export interface IEntity extends IDisposable{

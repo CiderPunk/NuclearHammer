@@ -197,9 +197,17 @@ export class Player extends Person{
     this.jumpTimeout -= dT
     
     if (this.input.jump && this.jumpTimeout <= 0){
-      //check on ground
-      this.jumpTimeout = 300
-      this.body.applyImpulse(new Vector3(0,100,0), this.body.transformNode.getAbsolutePosition())
+      
+      const start = this.body.transformNode.getAbsolutePosition()
+      const end = start.clone().addInPlaceFromFloats(0,-3,0)
+      const castRes = this.owner.raycast(start,end)
+
+      if (castRes.hasHit && castRes.body!= this.hammerBody){
+        //check on ground
+        this.jumpTimeout = 300
+        this.body.applyImpulse(new Vector3(0,700,0), this.body.transformNode.getAbsolutePosition())
+      }
+      castRes.reset()
     }
 /*
     if (this.showForcePointer){
