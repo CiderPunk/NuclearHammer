@@ -1,11 +1,12 @@
 
-import "@babylonjs/core/Gamepads/gamepadSceneComponent";
-import { GamepadManager, Xbox360Pad } from "@babylonjs/core/Gamepads";
+//import "@babylonjs/core/Gamepads/gamepadSceneComponent";
+import { GamepadManager, Xbox360Pad,Xbox360Button, DualShockPad, DualShockButton, GenericPad  } from "@babylonjs/core/Gamepads";
 import { IGame, IInputManager } from "./interfaces";
 import { Vector2 } from "@babylonjs/core/Maths/math";
 
+
 export class InputManager implements IInputManager {
-  gpm: GamepadManager
+  //gpm: GamepadManager
   move = new  Vector2(0,0)
   keyMove = new  Vector2(0,0)
   fire:boolean = false
@@ -15,28 +16,126 @@ export class InputManager implements IInputManager {
   public toggleDebug?:()=>void
   public togggleCamera?: () => void;
   public nextLevel?: () => void;
-
-
   public constructor(owner: IGame) {
-    //joypad
-    this.gpm = new GamepadManager(owner.scene);
-    this.gpm.onGamepadConnectedObservable.add((gp, state) => {
-      console.log(`gamepad connected ${gp.id}`)
-      if (gp instanceof Xbox360Pad){
-        const xpad = gp as Xbox360Pad
-        xpad.onleftstickchanged((values)=>{ 
-          console.log(`gamepad lstick move ${values.x}, ${values.y}`)
-          this.move.set( values.x, values.y )
-        })
-        xpad.onbuttondown((button)=>{
-          console.log(`gamepad button ${button}`)
-        })
+    
+  //joypad
+  const gpm = new GamepadManager();
+  gpm.onGamepadConnectedObservable.add((gamepad, state) => {
+   console.log(`gamepad connected ${gamepad.id}`)
+
+    //Stick events
+    gamepad.onleftstickchanged((values)=>{
+      //console.log(`Left gamepad x:${values.x} y:${values.y}`)
+      this.move.set(-values.x, -values.y)
+      if (this.move.lengthSquared() > 1){
+        this.move.normalize()
       }
     })
 
-    this.gpm.onGamepadDisconnectedObservable.add((gp, state)=>{
-      console.log(`gamepad disconnected ${gp.id}`)
-    })
+    //Handle gamepad types
+    if (gamepad instanceof Xbox360Pad) {
+      //Xbox button down/up events
+      gamepad.onButtonDownObservable.add((button, state)=>{
+        switch ( button){
+          case Xbox360Button.B:
+            this.jump = true
+            this.fire = true
+            break;
+          case Xbox360Button.A:
+            this.fire = true
+            break;
+          case Xbox360Button.Start:
+            if (this.nextLevel){
+              this.nextLevel()
+            }  
+            break;
+        }
+      })
+      gamepad.onButtonUpObservable.add((button, state)=>{
+        switch (button){
+          case Xbox360Button.B:
+            this.jump = false
+            this.fire = false
+            break;
+          case Xbox360Button.A:
+            this.fire = false
+            break;
+        }
+      })
+    } 
+    else if (gamepad instanceof DualShockPad) {
+     //Dual shock button down/up events
+      gamepad.onButtonDownObservable.add((button, state)=>{
+        switch (button){
+          case DualShockButton.Circle:
+            this.jump = true
+            this.fire = true
+            break;
+          case DualShockButton.Cross:
+            this.fire = true
+            break;
+
+          case DualShockButton.Options:
+            if (this.nextLevel){
+              this.nextLevel()
+            }  
+            break;
+
+        }
+      })
+     gamepad.onButtonUpObservable.add((button, state)=>{
+      switch (button){
+        case DualShockButton.Circle:
+          this.jump = false
+          this.fire = false
+          break;
+        case DualShockButton.Cross:
+          this.fire = false
+          break;
+      }
+     })
+   }
+   else if (gamepad instanceof GenericPad) {
+
+     gamepad.onButtonDownObservable.add((button, state)=>{
+      switch (button){
+        case 0:
+          this.jump = true
+          this.fire = true
+          break;
+        case 1:
+          this.fire = true
+          break;
+
+        case 3:
+          if (this.nextLevel){
+            this.nextLevel()
+          }  
+          break;
+
+      }
+     })
+     gamepad.onButtonUpObservable.add((button, state)=>{
+      switch (button){
+        case 0:
+          this.jump = false
+          this.fire = false
+          break;
+        case 1:
+          this.fire = false
+          break;
+      }
+     })
+   } 
+
+ })
+
+ gpm.onGamepadDisconnectedObservable.add((gp, state)=>{
+   console.log(`gamepad disconnected ${gp.id}`)
+ })
+
+
+
     if (document){
       document.addEventListener("keydown", (e:KeyboardEvent) =>{  
         if (!e.repeat) { 

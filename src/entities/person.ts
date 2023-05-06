@@ -1,12 +1,12 @@
 import { AbstractMesh, CreateCapsule, TransformNode } from "@babylonjs/core/Meshes";
 import { IEntity, IGame } from "../interfaces";
-import { Color3, Vector3 } from "@babylonjs/core/Maths/math";
+import {  Vector3 } from "@babylonjs/core/Maths/math";
 import { PhysicsBody, PhysicsMotionType, PhysicsShape, PhysicsShapeCapsule, PhysicsShapeContainer } from "@babylonjs/core/Physics";
 
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 
 import { Texture } from "@babylonjs/core/Materials/Textures/texture";
-import { AssetContainer } from "@babylonjs/core/assetContainer";
+
 
 import { AssetsManager } from "@babylonjs/core/Misc/assetsManager";
 
@@ -31,12 +31,10 @@ export interface IPersonOptions  {
 
 export class Person implements IEntity{
   rootMesh: AbstractMesh
-  //anchor we apply forces to
   forcePoint:TransformNode
   body:PhysicsBody
   aliveTime = 0
   shape: PhysicsShape;
-
 
   static personMesh?:AbstractMesh
 
