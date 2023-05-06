@@ -4,6 +4,7 @@ import { GamepadManager, Xbox360Pad,Xbox360Button, DualShockPad, DualShockButton
 import { IGame, IInputManager } from "./interfaces";
 import { Vector2 } from "@babylonjs/core/Maths/math";
 
+
 export class InputManager implements IInputManager {
   //gpm: GamepadManager
   move = new  Vector2(0,0)
@@ -16,16 +17,15 @@ export class InputManager implements IInputManager {
   public togggleCamera?: () => void;
   public nextLevel?: () => void;
   public constructor(owner: IGame) {
-
-
- //joypad
-const gpm = new GamepadManager();
-gpm.onGamepadConnectedObservable.add((gamepad, state) => {
+    
+  //joypad
+  const gpm = new GamepadManager();
+  gpm.onGamepadConnectedObservable.add((gamepad, state) => {
    console.log(`gamepad connected ${gamepad.id}`)
 
     //Stick events
     gamepad.onleftstickchanged((values)=>{
-      console.log(`Left gamepad x:${values.x} y:${values.y}`)
+      //console.log(`Left gamepad x:${values.x} y:${values.y}`)
       this.move.set(-values.x, -values.y)
       if (this.move.lengthSquared() > 1){
         this.move.normalize()
@@ -43,6 +43,11 @@ gpm.onGamepadConnectedObservable.add((gamepad, state) => {
             break;
           case Xbox360Button.A:
             this.fire = true
+            break;
+          case Xbox360Button.Start:
+            if (this.nextLevel){
+              this.nextLevel()
+            }  
             break;
         }
       })
@@ -69,6 +74,13 @@ gpm.onGamepadConnectedObservable.add((gamepad, state) => {
           case DualShockButton.Cross:
             this.fire = true
             break;
+
+          case DualShockButton.Options:
+            if (this.nextLevel){
+              this.nextLevel()
+            }  
+            break;
+
         }
       })
      gamepad.onButtonUpObservable.add((button, state)=>{
@@ -94,6 +106,13 @@ gpm.onGamepadConnectedObservable.add((gamepad, state) => {
         case 1:
           this.fire = true
           break;
+
+        case 3:
+          if (this.nextLevel){
+            this.nextLevel()
+          }  
+          break;
+
       }
      })
      gamepad.onButtonUpObservable.add((button, state)=>{
