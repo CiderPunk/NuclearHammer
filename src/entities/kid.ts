@@ -71,8 +71,8 @@ export class Kid extends Person implements IKid{
     }
 
 
-    const force = this.targetVector.scale(20).addInPlace(new Vector3(10 * Math.sin(this.aliveTime * 0.001),0,10 * Math.cos(this.aliveTime  * 0.001)))
-    const point = this.forcePoint.getAbsolutePosition().addInPlace(new Vector3(3 * Math.sin(this.aliveTime * 0.005),0,3 * Math.cos(this.aliveTime  * 0.005)))
+    const force = this.targetVector.scale(30).addInPlace(new Vector3(10 * Math.sin(this.aliveTime * 0.001),0,10 * Math.cos(this.aliveTime  * 0.001)))
+    const point = this.forcePoint.getAbsolutePosition().addInPlace(new Vector3(1 * Math.sin(this.aliveTime * 0.005),0,1 * Math.cos(this.aliveTime  * 0.005)))
     this.body.applyForce(force, point)
 
   }

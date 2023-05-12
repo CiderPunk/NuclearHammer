@@ -12,7 +12,7 @@ export class Pointer{
 
   readonly transformNode: TransformNode
 
-  public constructor(readonly name:string, scene:Scene, colour:Color3, readonly scale:boolean = true, start?:Vector3, line?:Vector3){
+  public constructor(readonly name:string, scene:Scene, colour:Color3, readonly scale:number = 0, start?:Vector3, line?:Vector3){
     const mat = new StandardMaterial(`${name}_mat`, scene)
     mat.emissiveColor = colour
     mat.backFaceCulling = false
@@ -49,8 +49,8 @@ export class Pointer{
 
   setLine(line:Vector3){
     this.transformNode.lookAt(line.add(this.transformNode.position))
-    if (this.scale){
-      const scale = line.length() / 10
+    if (this.scale > 0){
+      const scale = line.length() / this.scale
       this.transformNode.scaling = new Vector3(scale, scale, scale)
     }
   }

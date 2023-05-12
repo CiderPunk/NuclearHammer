@@ -14,7 +14,9 @@ export interface IPersonOptions  {
   height?:number,
   radiusTop?:number,
   radiusBottom?:number,
-  offset?:number,
+  
+  forceVerticalOffset?:number
+  forceTurningOffset?:number
   capsuleBottom?:number,
   capsuleTop?:number,
   canterOfGravity?:number,
@@ -32,13 +34,14 @@ export interface IPersonOptions  {
 export class Person implements IEntity{
   rootMesh: AbstractMesh
   forcePoint:TransformNode
+  cogPoint:TransformNode
   body:PhysicsBody
   aliveTime = 0
   shape: PhysicsShape;
 
   static personMesh?:AbstractMesh
 
-  public static async preload(assMan:AssetsManager){
+  public static async preload(assMan:AssetsManager, game:IGame){
     assMan.addMeshTask("weebleLoad", "weeble", "assets/", "weeble.glb").onSuccess = (task)=>{
       Person.personMesh = task.loadedMeshes.find(m=>m.name === "weeble")
     }
@@ -50,7 +53,8 @@ export class Person implements IEntity{
       height:4,
       radiusTop:0.8,
       radiusBottom:1.2,
-      offset:-2,
+      forceVerticalOffset:-2,
+      forceTurningOffset:-0.8,
       capsuleBottom:-1,
       capsuleTop:0.4,
       canterOfGravity:-1.4,
@@ -63,11 +67,8 @@ export class Person implements IEntity{
     }
 
     Object.assign(options, personOptions)
-  
+
     const scene = owner.scene
-    const forcePoint = new TransformNode(`${name}_transform`, scene)
-
-
 
     //const torso = CreateCapsule(`${name}_body`, {  height:options.height, radius:options.radiusTop, radiusTop:options.radiusTop, radiusBottom:options.radiusBottom }, scene)   
     if (!Person.personMesh){
@@ -80,15 +81,11 @@ export class Person implements IEntity{
       const mat = new StandardMaterial(`${name}_mat`, scene)
       //mat.diffuseColor = options.color!
       const tex =  new Texture(options.texture!, owner.scene, false,false);
-
       mat.diffuseTexture = tex
-
-
       torso!.material = mat
     }
 
-    forcePoint.setAbsolutePosition(new Vector3(0,options.offset,-0.8))
-    forcePoint.parent = torso
+
     torso!.setAbsolutePosition(new Vector3(0,5,0))
     const shape = new PhysicsShapeCapsule(new Vector3(0,options.capsuleBottom,0), new Vector3(0,options.capsuleTop,0),options.radiusBottom!, scene)
 
@@ -96,14 +93,32 @@ export class Person implements IEntity{
     const body = new PhysicsBody(torso!,PhysicsMotionType.DYNAMIC, false, scene)
     body.shape = shape
     body.setMassProperties({ mass:options.mass, centerOfMass:new Vector3(0,options.canterOfGravity,0) })
+
+    shape.material = { friction:options.friction, restitution:options.restitution }
     this.rootMesh = torso!
     
     
-    body.setAngularDamping(2)
+
     this.body = body
-    this.forcePoint = forcePoint
+
+
+    body.setAngularDamping(2)
+    this.body.setLinearDamping(1.25)
+
     this.shape = shape
     this.body._pluginData.entity = this
+
+    const forcePoint = new TransformNode(`${name}_force`, scene)
+    forcePoint.setAbsolutePosition(new Vector3(0,options.forceVerticalOffset,options.forceTurningOffset))
+    forcePoint.parent = this.body.transformNode
+
+    const cogPoint = new TransformNode(`${name}_cog`, scene)
+    cogPoint.setAbsolutePosition(new Vector3(0,options.canterOfGravity,0))
+    cogPoint.parent = this.body.transformNode
+
+    this.forcePoint = forcePoint
+    this.cogPoint = cogPoint
+
 
     if (options.start){
       this.setPosition(options.start)

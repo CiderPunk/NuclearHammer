@@ -39,7 +39,7 @@ export class InputManager implements IInputManager {
         switch ( button){
           case Xbox360Button.B:
             this.jump = true
-            this.fire = true
+            //this.fire = true
             break;
           case Xbox360Button.A:
             this.fire = true
@@ -55,7 +55,7 @@ export class InputManager implements IInputManager {
         switch (button){
           case Xbox360Button.B:
             this.jump = false
-            this.fire = false
+            //this.fire = false
             break;
           case Xbox360Button.A:
             this.fire = false
@@ -69,7 +69,7 @@ export class InputManager implements IInputManager {
         switch (button){
           case DualShockButton.Circle:
             this.jump = true
-            this.fire = true
+            //this.fire = true
             break;
           case DualShockButton.Cross:
             this.fire = true
@@ -87,7 +87,7 @@ export class InputManager implements IInputManager {
       switch (button){
         case DualShockButton.Circle:
           this.jump = false
-          this.fire = false
+          //this.fire = false
           break;
         case DualShockButton.Cross:
           this.fire = false
@@ -101,7 +101,7 @@ export class InputManager implements IInputManager {
       switch (button){
         case 0:
           this.jump = true
-          this.fire = true
+          //this.fire = true
           break;
         case 1:
           this.fire = true
@@ -119,7 +119,7 @@ export class InputManager implements IInputManager {
       switch (button){
         case 0:
           this.jump = false
-          this.fire = false
+          //this.fire = false
           break;
         case 1:
           this.fire = false

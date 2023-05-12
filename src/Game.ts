@@ -6,12 +6,10 @@ import { IConfigurationProvider, IEntity, IGame, ILevelSpec } from "./interfaces
 import HavokPhysics, { RayCastResult } from "@babylonjs/havok";
 import { HavokPlugin } from "@babylonjs/core/Physics/v2/Plugins"
 import "@babylonjs/core/Physics/v2/physicsEngineComponent"
-import { GPUParticleSystem, ParticleHelper} from "@babylonjs/core/Particles"
-import { PhysicsHelper, PhysicsRadialImpulseFalloff } from "@babylonjs/core/Physics"
 
+import { PhysicsHelper, PhysicsRadialImpulseFalloff, PhysicsRaycastResult } from "@babylonjs/core/Physics"
 import { GPUParticleSystem, ParticleHelper} from "@babylonjs/core/Particles"
 
-import { PhysicsEngine, PhysicsHelper, PhysicsRadialImpulseFalloff, PhysicsRaycastResult, PhysicsShapeType } from "@babylonjs/core/Physics"
 
 //spector start
 import "@babylonjs/core/Debug/debugLayer"; // Augments the scene with the debug methods
@@ -148,13 +146,10 @@ export class Game implements IGame{
     gui.addControl(info)
     this.infoBox = info
 
-
     //set up physics
     HavokPhysics().then((havok) => {
       this.scene.enablePhysics(new Vector3(0,-9.81, 0), new HavokPlugin(true, havok));
       this.physicsHelper = new PhysicsHelper(this.scene)
-
-
       this.raycaster = new Raycaster(this)
       // Render every frame
       this.engine.runRenderLoop(() => {
@@ -162,13 +157,12 @@ export class Game implements IGame{
           this.render()
         }
       })
-
-     
     });
 
     const assMan = new AssetsManager()
     //load some stuff...
-    Person.preload(assMan)
+    Person.preload(assMan, this)
+    Player.preload(assMan, this)
     assMan.loadAsync()
 
     this.assContainer = new AssetContainer(this.scene)
