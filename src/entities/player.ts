@@ -51,7 +51,7 @@ export class Player extends Person{
 
   public constructor(name:string, owner:IGame, readonly input:IInputManager){
 
-    super(name, owner, { radiusTop:1, radiusBottom:1.6, height:5, capsuleBottom:-1.2, canterOfGravity:-3,forceVerticalOffset:-3.1, forceTurningOffset:-0.8, showForce:false, mass:60, createMat:true, friction:0.7  })
+    super(name, owner, { radiusTop:1, radiusBottom:1.6, height:5, capsuleBottom:-1.2, canterOfGravity:-3,forceVerticalOffset:-3, forceTurningOffset:-0.4, showForce:false, mass:60, createMat:true, friction:0.7  })
 
     
     this.pointers.push(new Pointer("parralel", owner.scene, Color3.Blue(), 0))
@@ -97,7 +97,7 @@ export class Player extends Person{
     const hammerConstraintSwing = new Physics6DoFConstraint(
       {pivotA: new Vector3(1.5,0,0), pivotB:new Vector3(0,0,-3), perpAxisA:Vector3.Right(), perpAxisB:Vector3.Right()},
       [
-        { axis: PhysicsConstraintAxis.ANGULAR_X,minLimit:Math.PI * -0.3 ,maxLimit:Math.PI * -1.2     },
+        { axis: PhysicsConstraintAxis.ANGULAR_X,minLimit:Math.PI * -0.3 ,maxLimit:Math.PI * 2     },
         { axis: PhysicsConstraintAxis.ANGULAR_Y, minLimit:0, maxLimit:0 },
         { axis: PhysicsConstraintAxis.ANGULAR_Z, minLimit:0, maxLimit:0 },
         { axis: PhysicsConstraintAxis.LINEAR_X, minLimit:0, maxLimit:0 },
@@ -170,7 +170,7 @@ export class Player extends Person{
   
       //console.log(`bang`)
       this.primed = false
-      this.owner.makeNuke(point, 15, 4000)
+      this.owner.makeNuke(point,18,4000)
 
     }
   }
@@ -189,10 +189,21 @@ export class Player extends Person{
     }
   }
   
+  static rayStart = new Vector3()
+  static rayEnd = new Vector3()
+
   update(dT: number): void {
     this.aliveTime+=dT
 
-    const amp = 1200
+    const start = this.body.transformNode.getAbsolutePosition()
+    Player.rayEnd.copyFrom(this.body.transformNode.absolutePosition).addInPlaceFromFloats(0,-4      ,0)
+    Player.rayStart.copyFrom(this.body.transformNode.absolutePosition)
+
+    const castRes = this.owner.raycast(Player.rayStart, Player.rayEnd)
+    const onGround = castRes.hasHit && castRes.body!= this.hammerBody
+    castRes.reset()
+
+    const amp = onGround ? 1200 :400 
     const force = new Vector3(this.input.move.x * amp, 0, this.input.move.y * amp)
     const pos = this.forcePoint.getAbsolutePosition()
     this.body.applyForce(force, pos)
@@ -283,18 +294,11 @@ forcePerp:${forcePerp}`)
     //reduce jump timeout
     this.jumpTimeout -= dT
     
-    if (this.input.jump && this.jumpTimeout <= 0){
-      
-      const start = this.body.transformNode.getAbsolutePosition()
-      const end = start.clone().addInPlaceFromFloats(0,-4      ,0)
-      const castRes = this.owner.raycast(start,end)
+    if (this.input.jump && this.jumpTimeout <= 0 && onGround){
+      //check on ground
+      this.jumpTimeout = 300
+      this.body.applyImpulse(new Vector3(0,1000,0), this.jumpPoint.getAbsolutePosition())
 
-      if (castRes.hasHit && castRes.body!= this.hammerBody){
-        //check on ground
-        this.jumpTimeout = 300
-        this.body.applyImpulse(new Vector3(0,1000,0), this.jumpPoint.getAbsolutePosition())
-      }
-      castRes.reset()
     }
 /*
     if (this.showForcePointer){
