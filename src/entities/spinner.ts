@@ -15,7 +15,6 @@ export class Spinner implements IEntity{
     this.rootMesh = CreateCylinder(`${name}_spinner`, { height:length, diameter:3})
     const shape = new PhysicsShapeCylinder(new Vector3(0,-length *0.5,0), new Vector3(0,length*0.5,0), 1.5, owner.scene)
     const body  = new PhysicsBody(this.rootMesh, PhysicsMotionType.ANIMATED, false, owner.scene)
-
     body.startAsleep = false
     body.shape = shape
     this.body = body
@@ -25,7 +24,7 @@ export class Spinner implements IEntity{
   }
 
   update(dT: number): void {
-    //this.body.setAngularVelocity(new Vector3(0,0,this.speed))
+
   }
 
   getPosition():Vector3{

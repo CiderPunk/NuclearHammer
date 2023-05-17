@@ -33,7 +33,7 @@ export class Player extends Person{
   jumpTimeout: number = 0
   jumpPoint: TransformNode;
 
-  pointers = new Array<Pointer>()
+  //pointers = new Array<Pointer>()
   static readonly splosions = new Array<Sound>()
 
 
@@ -51,12 +51,10 @@ export class Player extends Person{
 
   public constructor(name:string, owner:IGame, readonly input:IInputManager){
 
-    super(name, owner, { radiusTop:1, radiusBottom:1.6, height:5, capsuleBottom:-1.2, canterOfGravity:-3,forceVerticalOffset:-3, forceTurningOffset:-0.4, showForce:false, mass:60, createMat:true, friction:0.7  })
+    super(name, owner, { radiusTop:1, radiusBottom:1.6, height:5, capsuleBottom:-1.2, canterOfGravity:-3,forceVerticalOffset:-3.1, forceTurningOffset:-0.5, showForce:false, mass:60, createMat:true, friction:0.7  })
 
-    
-    this.pointers.push(new Pointer("parralel", owner.scene, Color3.Blue(), 0))
-    this.pointers.push(new Pointer("perp", owner.scene, Color3.Red(),0))
-
+    //this.pointers.push(new Pointer("parralel", owner.scene, Color3.Blue(), 0))
+    //this.pointers.push(new Pointer("perp", owner.scene, Color3.Red(),0))
 
     this.shape.filterMembershipMask = CollisionMask.Player
     this.shape.filterCollideMask = CollisionMask.Kid | CollisionMask.Goal
